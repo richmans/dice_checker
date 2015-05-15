@@ -18,8 +18,8 @@ class Analyzer:
         self.detected_dice = []
         self.callibration_points = [(10,10),(0,0)]
         self.callibration_reference = [
-            (20,15.5),
-            (2,3)
+            (200,155),
+            (20,30)
         ]
     def set_area_threshold(self, threshold):
         self.area_threshold = threshold
@@ -41,7 +41,7 @@ class Analyzer:
         return math.acos((vla ** 2 - vlb ** 2 - vlc ** 2) / (-2 * vlb * vlc))
     
     def calculate_length_from_angles_and_length(self, vaa, vab, vlb):
-        return math.asin( (vlb / math.sin(vab)) * math.sin(vaa))
+        return  (vlb / math.sin(vab)) * math.sin(vaa)
             
     # Converts measured coordinates to real coordinates
     # Lots of math in here, hope the documentation helps.
@@ -56,37 +56,44 @@ class Analyzer:
         rpa = self.callibration_reference[0]
         rpb = self.callibration_reference[1]
         
+        # check if the point is above or below the callibration line.. usefull later
+        above_line = (vpa[0] - vpb[0]) / (vpa[1] - vpb[1]) * vpc[0] > vpc[1]
         # step 1, calculate the virtual distance between all points
         # vla is the line that does not connect to vpa, etc
         vla = self.calculate_distance(vpc, vpb)
         vlb = self.calculate_distance(vpa, vpc)
-        vlc = self.calculate_distance(vpb, vpc)
-        
+        vlc = self.calculate_distance(vpb, vpa)
+        print("Virtual distances: vla %f, vlb %f, vlc %f " % (vla, vlb, vlc))
         # step 2, calculate the angles of each point
         vaa = self.calculate_angle_from_lengths(vla, vlb, vlc)
         vab = self.calculate_angle_from_lengths(vlb, vla, vlc)
-        vac = self.calculate_angle_from_lengths(vlc, vla, vla)
-        
+        vac = math.pi - vaa - vab
+        print("Virtual angles: vaa %f, vab %f, vac %f" % (vaa, vab, vac))
         # step 3, calculate the triangle lengths in real
         # rlc is the line not connected to c, between the two reference points
         rlc = self.calculate_distance(rpa, rpb)
         rla = self.calculate_length_from_angles_and_length(vaa, vac, rlc)
-        rlb = self.calculate_length_from_angles_and_length(vab, vac, rlc)
-        
+        rlb = self.calculate_length_from_angles_and_length(vab, vaa, rla)
+        print("Real lengths rla %f, rlb %f, rlc %f" % (rla, rlb, rlc))
         ## step 4 calculate the angles of the real reference points with horizontal and vertical
         ## These 2 corners d and e are added to corners a and b
-        rld = rpb[0] - rpa[0]
+        rld = rpa[0] - rpb[0]
         rle = rpa[1] - rpb[1]
+        print("Lengths of the callibration triangle %f %f %f" % (rld, rle, rlc))
         rad = self.calculate_angle_from_lengths(rld, rle, rlc)
-        rae = self.calculate_angle_from_lengths(rle, rld, rlc)
+        rae = self.calculate_angle_from_lengths(rle, rlc, rld)
+        print("Callibration angles rad %f, rae %f" % (rad, rae))
         
-        racx = 90 - (rab+rae) # angle of b-c at rpc with vertical
-        
+        rabx =   rae-vab if above_line else rae+vab
+        print("Angle of rla to horizontal %f" % rabx)
         ## calculate x distance from refrence point b
-        rlx = self.calculate_length_from_angles_and_length(racx, 90, rlb)
-        rly = math.sqrt(rlb ** 2 - rlx ** 2)
+        rlx = math.cos(rabx) * rla
+        #self.calculate_length_from_angles_and_length(rabx, 0.5 * math.pi, rla)
         
-        return (rpb[0] - rlx, rpb[1] - rly)
+        
+        rly = math.sqrt(rla ** 2 - rlx ** 2)
+        print("Distances rlx %f rly %f" % (rlx, rly))
+        return (rpb[0] + rlx, rpb[1] + rly)
         
     def analyze(self, im, window_name):
         original = im
@@ -105,7 +112,8 @@ class Analyzer:
         info = "treshold %d, area %d, %d blobs" % (self.color_threshold, self.area_threshold, len(self.keypoints))
         cv2.putText(im_with_keypoints, info, (0, 580), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0),1)
         if len(self.detected_dice) > 0:
-            cv2.putText(im_with_keypoints, "Dice (%d, %d)", (0, 10), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0),1)
+            dice_info = "Dice (%d, %d)" % (self.detected_dice[0])
+            cv2.putText(im_with_keypoints, dice_info, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0),1)
         cv2.imshow( "frame" ,im_with_keypoints)
 
         

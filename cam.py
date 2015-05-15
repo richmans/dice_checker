@@ -57,5 +57,5 @@ class CameraProcessor:
         break
       if key & 0xFF == ord('r'):
         self.report_blobs()
-    cap.release()
+    self.cap.release()
     cv2.destroyAllWindows()

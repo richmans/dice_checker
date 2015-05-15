@@ -1,6 +1,7 @@
 import time
 import serial
 import threading
+import sys
 class Robot:
   def __init__(self, path):
     self.serial = serial.Serial(path)
@@ -11,7 +12,7 @@ class Robot:
   
   def read_input(self):
     while True:
-      print("ROBOT: %s" % self.serial.readline().rstrip())
+      sys.stdout.write("ROBOT: %s" % self.serial.readline())
       
   def interactive(self):
     self.send_command([i])
