@@ -1,4 +1,4 @@
-from cam import CameraProcessor
+from camera import CameraProcessor
 import sys
 
 if (len(sys.argv) < 2):

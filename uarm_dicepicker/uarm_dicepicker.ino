@@ -15,11 +15,12 @@ int pickupStretch;
 int waitingForPickup;
 bool interactiveMode;
 
+int angle_bias = -4;
 int angle;
 int stretch;
 int height;
 int hand_angle;
-
+bool gripperClosed;
 UF_uArm uarm;           // initialize the uArm library 
 void setup() 
 {
@@ -47,7 +48,12 @@ void safeState(){
 }
 
 void setPosition() {
-  uarm.setPosition(stretch, height, angle, hand_angle);
+  uarm.setPosition(stretch, height, angle + angle_bias, hand_angle);
+  if (gripperClosed == true && interactiveMode) {
+    uarm.gripperCatch();
+  }else {
+    uarm.gripperRelease();
+  }
 }
 
 void loop()
@@ -79,6 +85,13 @@ void handleInteractive(int command) {
   if (command == 113) height += 5;
   if (command == 119) stretch += 5;
   if (command == 115) stretch -= 5;
+  if (command == 103) {
+    if (gripperClosed == true) {
+      gripperClosed = false;
+    }else{
+      gripperClosed = true;
+    }
+  }
   if (command == 111) {
     interactiveMode = false;  
     safeState();

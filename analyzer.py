@@ -63,36 +63,36 @@ class Analyzer:
         vla = self.calculate_distance(vpc, vpb)
         vlb = self.calculate_distance(vpa, vpc)
         vlc = self.calculate_distance(vpb, vpa)
-        print("Virtual distances: vla %f, vlb %f, vlc %f " % (vla, vlb, vlc))
+        #print("Virtual distances: vla %f, vlb %f, vlc %f " % (vla, vlb, vlc))
         # step 2, calculate the angles of each point
         vaa = self.calculate_angle_from_lengths(vla, vlb, vlc)
         vab = self.calculate_angle_from_lengths(vlb, vla, vlc)
         vac = math.pi - vaa - vab
-        print("Virtual angles: vaa %f, vab %f, vac %f" % (vaa, vab, vac))
+        #print("Virtual angles: vaa %f, vab %f, vac %f" % (vaa, vab, vac))
         # step 3, calculate the triangle lengths in real
         # rlc is the line not connected to c, between the two reference points
         rlc = self.calculate_distance(rpa, rpb)
         rla = self.calculate_length_from_angles_and_length(vaa, vac, rlc)
         rlb = self.calculate_length_from_angles_and_length(vab, vaa, rla)
-        print("Real lengths rla %f, rlb %f, rlc %f" % (rla, rlb, rlc))
+        #print("Real lengths rla %f, rlb %f, rlc %f" % (rla, rlb, rlc))
         ## step 4 calculate the angles of the real reference points with horizontal and vertical
         ## These 2 corners d and e are added to corners a and b
         rld = rpa[0] - rpb[0]
         rle = rpa[1] - rpb[1]
-        print("Lengths of the callibration triangle %f %f %f" % (rld, rle, rlc))
+        #print("Lengths of the callibration triangle %f %f %f" % (rld, rle, rlc))
         rad = self.calculate_angle_from_lengths(rld, rle, rlc)
         rae = self.calculate_angle_from_lengths(rle, rlc, rld)
-        print("Callibration angles rad %f, rae %f" % (rad, rae))
+        #print("Callibration angles rad %f, rae %f" % (rad, rae))
         
         rabx =   rae-vab if above_line else rae+vab
-        print("Angle of rla to horizontal %f" % rabx)
+        #print("Angle of rla to horizontal %f" % rabx)
         ## calculate x distance from refrence point b
         rlx = math.cos(rabx) * rla
         #self.calculate_length_from_angles_and_length(rabx, 0.5 * math.pi, rla)
         
         
         rly = math.sqrt(rla ** 2 - rlx ** 2)
-        print("Distances rlx %f rly %f" % (rlx, rly))
+        #print("Distances rlx %f rly %f" % (rlx, rly))
         return (rpb[0] + rlx, rpb[1] + rly)
         
     def analyze(self, im, window_name):
