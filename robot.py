@@ -2,6 +2,7 @@ import time
 import serial
 import threading
 import sys
+import utils
 class Robot:
   def __init__(self, path):
     self.serial = serial.Serial(path)
@@ -14,11 +15,12 @@ class Robot:
     # wait for the arm to activate
     time.sleep(2)
     
-  def callibrate(self):
+  def do_callibration(self):
     input("Press enter when the dice is placed on the holder")
     self.send_command([99])
     time.sleep(2000)
-    callibrated_dice = parent.get_dice()
+
+  def set_callibration(self, callibrated_dice):
     self.stretch_distance = callibrated_dice[1] - 80
     self.zero_angle_x = callibrated_dice[0]
   
@@ -32,7 +34,7 @@ class Robot:
    
   def pickup(self, x, y):
     # calculate the distance to the center of the arm, that is the stretch
-    stretch = self.calculate_distance((x,y), (self.zero_angle_x, -1 * self.stretch_distance))
+    stretch = calculate_distance((x,y), (self.zero_angle_x, -1 * self.stretch_distance))
     # sin(a) = distx / stretch
     distx = x - self.zero_angle_x
     angle = math.asin(distx / stretch)

@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import math 
+import utils
 class Analyzer: 
     def __init__(self):
         self.color_threshold = 183
@@ -29,12 +30,7 @@ class Analyzer:
     def set_callibration(self, point_index, point):
         self.callibration_points[point_index] = point
     
-    # Calculate distance between two points using pythagoras
-    def calculate_distance(self, point1, point2):
-        legx = (point1[0] - point2[0]) ** 2
-        legy = (point1[1] - point2[1]) ** 2
-        return math.sqrt(legx + legy)
-
+    
     # calculate the angle a in a triangle with three known lengths
     # to calculate other angles, just juggle the arguments around
     def calculate_angle_from_lengths(self, vla, vlb, vlc):
@@ -60,9 +56,9 @@ class Analyzer:
         above_line = (vpa[0] - vpb[0]) / (vpa[1] - vpb[1]) * vpc[0] > vpc[1]
         # step 1, calculate the virtual distance between all points
         # vla is the line that does not connect to vpa, etc
-        vla = self.calculate_distance(vpc, vpb)
-        vlb = self.calculate_distance(vpa, vpc)
-        vlc = self.calculate_distance(vpb, vpa)
+        vla = calculate_distance(vpc, vpb)
+        vlb = calculate_distance(vpa, vpc)
+        vlc = calculate_distance(vpb, vpa)
         #print("Virtual distances: vla %f, vlb %f, vlc %f " % (vla, vlb, vlc))
         # step 2, calculate the angles of each point
         vaa = self.calculate_angle_from_lengths(vla, vlb, vlc)
@@ -71,7 +67,7 @@ class Analyzer:
         #print("Virtual angles: vaa %f, vab %f, vac %f" % (vaa, vab, vac))
         # step 3, calculate the triangle lengths in real
         # rlc is the line not connected to c, between the two reference points
-        rlc = self.calculate_distance(rpa, rpb)
+        rlc = calculate_distance(rpa, rpb)
         rla = self.calculate_length_from_angles_and_length(vaa, vac, rlc)
         rlb = self.calculate_length_from_angles_and_length(vab, vaa, rla)
         #print("Real lengths rla %f, rlb %f, rlc %f" % (rla, rlb, rlc))

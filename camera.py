@@ -31,6 +31,10 @@ class CameraProcessor:
       cv2.waitKey(1)
     cv2.destroyWindow("callibration")
     
+  def detected_dice(self):
+    return None if len(self.analyzer.detected_dice) == 0
+    return self.analyzer.detected_dice[0]
+    
   def process(self):
     ret, frame = self.cap.read()
     resized = cv2.resize(frame, (800,600))
@@ -44,12 +48,18 @@ class CameraProcessor:
     
   def report_blobs(self):
     self.analyzer.report()
-    
-  def main(self):
+  
+  def setup(self):
     self.window = cv2.namedWindow('frame')
     cv2.createTrackbar('Threshold','frame',self.analyzer.color_threshold,255,self.on_trackbar)
     cv2.createTrackbar('Area','frame',self.analyzer.area_threshold / 100,100,self.on_area_trackbar)
     
+  def teardown(self):
+    self.cap.release()
+    cv2.destroyAllWindows()
+    
+  def main(self):
+    self.setup();
     while True:
       self.process()
       key = cv2.waitKey(1)
@@ -57,5 +67,4 @@ class CameraProcessor:
         break
       if key & 0xFF == ord('r'):
         self.report_blobs()
-    self.cap.release()
-    cv2.destroyAllWindows()
+    self.teardown()
