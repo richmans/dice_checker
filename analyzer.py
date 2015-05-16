@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import math 
-import utils
+from utils import calculate_distance
 class Analyzer: 
     def __init__(self):
         self.color_threshold = 183

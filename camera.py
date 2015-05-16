@@ -3,7 +3,8 @@ import numpy as np
 import sys
 from analyzer import Analyzer
 import time
-
+import uuid
+import os
 class CameraProcessor:
   def __init__(self, camera):
     self.analyzer = Analyzer()
@@ -14,6 +15,14 @@ class CameraProcessor:
       "Please click the plus sign WITHOUT the circle around it",
       "Got it!"
     ]
+    self.create_images_dir()
+  
+  def create_images_dir(self):
+    try:
+      os.mkdir("images")
+    except:
+      pass
+      
   def handle_callibration_click(self, event,x,y,flags,param):
     if event == 1:
       self.analyzer.set_callibration(self.callibration_state, (x,y))
@@ -22,18 +31,25 @@ class CameraProcessor:
       print(self.callibration_message[self.callibration_state])
       
   def callibrate(self):
-    ret, frame = self.cap.read()
-    resized = cv2.resize(frame, (800,600))
-    cv2.imshow( "callibration" ,resized)
+    cv2.namedWindow('callibration')
     cv2.setMouseCallback('callibration',self.handle_callibration_click)
     print(self.callibration_message[self.callibration_state])
     while self.callibration_state < 2:
+      ret, frame = self.cap.read()
+      resized = cv2.resize(frame, (800,600))
+      cv2.imshow( "callibration" ,resized)
       cv2.waitKey(1)
     cv2.destroyWindow("callibration")
     
   def detected_dice(self):
-    return None if len(self.analyzer.detected_dice) == 0
+    if len(self.analyzer.detected_dice) == 0: return None 
     return self.analyzer.detected_dice[0]
+  
+  def save_frame(self):
+    filename = "images/%s.jpg" % str(uuid.uuid4())
+    ret, frame = self.cap.read()
+    print("Writing %s" % filename)
+    cv2.imwrite(filename, frame)
     
   def process(self):
     ret, frame = self.cap.read()
@@ -58,7 +74,7 @@ class CameraProcessor:
     self.cap.release()
     cv2.destroyAllWindows()
     
-  def main(self):
+  def run_test(self):
     self.setup();
     while True:
       self.process()
@@ -67,4 +83,6 @@ class CameraProcessor:
         break
       if key & 0xFF == ord('r'):
         self.report_blobs()
+      if key & 0xFF == ord('s'):
+        self.save_frame()
     self.teardown()

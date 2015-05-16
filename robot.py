@@ -2,7 +2,8 @@ import time
 import serial
 import threading
 import sys
-import utils
+import math
+from utils import calculate_distance
 class Robot:
   def __init__(self, path):
     self.serial = serial.Serial(path)
@@ -16,14 +17,15 @@ class Robot:
     time.sleep(2)
     
   def do_callibration(self):
-    input("Press enter when the dice is placed on the holder")
+    raw_input("Press enter when the dice is placed on the holder")
     self.send_command([99])
-    time.sleep(2000)
+    time.sleep(2)
 
   def set_callibration(self, callibrated_dice):
     self.stretch_distance = callibrated_dice[1] - 80
     self.zero_angle_x = callibrated_dice[0]
-  
+    print("Callibration %d, %d" % (self.zero_angle_x, self.stretch_distance))
+    
   def read_input(self):
     while True:
       sys.stdout.write("ROBOT: %s" % self.serial.readline())
@@ -34,10 +36,13 @@ class Robot:
    
   def pickup(self, x, y):
     # calculate the distance to the center of the arm, that is the stretch
-    stretch = calculate_distance((x,y), (self.zero_angle_x, -1 * self.stretch_distance))
+    stretch = int(calculate_distance((x,y), (self.zero_angle_x, self.stretch_distance)))
+    #print("Stretch calc: distance((%d,%d),(%d,%d) = %d" % (x,y,self.zero_angle_x,  self.stretch_distance, stretch) )
     # sin(a) = distx / stretch
     distx = x - self.zero_angle_x
-    angle = math.asin(distx / stretch)
+    print("Distx %d" % distx)
+    angle = int(-math.degrees(math.asin(distx / stretch)))
+    print("Sending command 112, %d, %d" % (angle, stretch))
     self.send_command([112, angle, stretch])
     
     
