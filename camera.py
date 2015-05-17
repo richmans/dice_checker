@@ -53,11 +53,17 @@ class CameraProcessor:
     
   def process(self):
     ret, frame = self.cap.read()
-    resized = cv2.resize(frame, (800,600))
-    self.analyzer.analyze(resized, 'frame')
+    self.process_image(frame)
     
+  def process_image(self, frame):
+    resized = cv2.resize(frame, (800,600))
+    self.analyzer.analyze(resized, frame, 'frame')
+  
   def on_trackbar(self,value):
     self.analyzer.color_threshold = value
+  
+  def on_blob_trackbar(self,value):
+    self.analyzer.blob_threshold = value
   
   def on_area_trackbar(self,value):
     self.analyzer.set_area_threshold(value * 100)
@@ -69,7 +75,7 @@ class CameraProcessor:
     self.window = cv2.namedWindow('frame')
     cv2.createTrackbar('Threshold','frame',self.analyzer.color_threshold,255,self.on_trackbar)
     cv2.createTrackbar('Area','frame',self.analyzer.area_threshold / 100,100,self.on_area_trackbar)
-    
+    cv2.createTrackbar('Blobs','frame',self.analyzer.blob_threshold,255,self.on_blob_trackbar)
   def teardown(self):
     self.cap.release()
     cv2.destroyAllWindows()

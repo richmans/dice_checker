@@ -4,7 +4,9 @@ import math
 from utils import calculate_distance
 class Analyzer: 
     def __init__(self):
-        self.color_threshold = 183
+        self.color_threshold = 170
+        self.blob_threshold = 11
+        
         self.area_threshold = 1000
         self.params = cv2.SimpleBlobDetector_Params()
         self.params.filterByArea = True
@@ -22,6 +24,8 @@ class Analyzer:
             (200,155),
             (20,30)
         ]
+        self.check_parameter = 0
+        self.points = 0
     def set_area_threshold(self, threshold):
         self.area_threshold = threshold
         self.params.minArea = self.area_threshold
@@ -90,29 +94,58 @@ class Analyzer:
         rly = math.sqrt(rla ** 2 - rlx ** 2)
         #print("Distances rlx %f rly %f" % (rlx, rly))
         return (rpb[0] + rlx, rpb[1] + rly)
-        
-    def analyze(self, im, window_name):
-        original = im
+    
+    def analyze(self, im, original, window_name):
+        oim = im
         kernel = np.ones((5,5), np.uint8)
         im = cv2.GaussianBlur(im, (7,7), 0)
         #im = cv2.erode(im, kernel, iterations=1)
         what, im = cv2.threshold(im, self.color_threshold, 256, 1)
-        
+    
         im = cv2.GaussianBlur(im, (5,5), 0)
         cimg = cv2.split(im)[2]
         self.keypoints = self.detector.detect(cimg)
-        im_with_keypoints = cv2.drawKeypoints(original, self.keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        im_with_keypoints = cv2.drawKeypoints(oim, self.keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         #print("Found %d blobs" % len(keypoints)) 
         #print("Area %f" % keypoints[0].size)
         self.detected_dice = map(lambda x: self.convert_coordinates((x.pt[0], x.pt[1])), self.keypoints)
         info = "treshold %d, area %d, %d blobs" % (self.color_threshold, self.area_threshold, len(self.keypoints))
-        cv2.putText(im_with_keypoints, info, (0, 580), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0),1)
+        cv2.putText(im_with_keypoints, info, (0, 580), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0),1)
+        cv2.imshow( window_name ,cimg)
         if len(self.detected_dice) > 0:
-            dice_info = "Dice (%d, %d)" % (self.detected_dice[0])
-            cv2.putText(im_with_keypoints, dice_info, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0),1)
-        cv2.imshow( "frame" ,im_with_keypoints)
+            x,y= self.detected_dice[0]
+            self.points = self.analyze_points(original, self.keypoints[0].pt, None)
+            if window_name != None:
+                dice_info = "Dice (%d, %d) %d" % (x, y, self.points)
+                cv2.putText(im_with_keypoints, dice_info, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0),1)
+                cv2.imshow( window_name ,im_with_keypoints)
 
-        
+    def analyze_points(self, im, coordinates, window_name):
+        x=coordinates[0]
+        y=coordinates[1]
+        dice_size = 60
+        dice = im[y*2-dice_size:y*2+dice_size, x*2-dice_size:x*2+dice_size]  
+        original_dice = dice
+        #dice = cv2.GaussianBlur(dice, (11,11), 0)   
+        dice = cv2.cvtColor(dice, cv2.COLOR_BGR2GRAY);
+        dice = cv2.GaussianBlur(dice, (11,11), 0)   
+        #ret,dice = cv2.threshold(dice,127,255,cv2.THRESH_TOZERO)
+        #dice = cv2.split(dice)[0]
+        #dice = 255 - dice
+        #dice = cv2.equalizeHist(dice)
+        #dice = cv2.Canny(dice,80,40)
+        circles = cv2.HoughCircles(dice,cv2.HOUGH_GRADIENT,1,10,
+                                    param1=130,param2=15,minRadius=5 ,maxRadius=20)
+        result = 0 if circles == None else len(circles[0])
+        #print(circles)
+        if result > 0:
+            circles = np.uint16(np.around(circles))
+            for i in circles[0,:]:
+                # draw the outer circle
+                cv2.circle(dice,(i[0],i[1]),i[2],(0,255,0),2)
+            
+        cv2.imshow("test", dice)
+        return result
         
     def report(self):
         print("Printing keypoints")

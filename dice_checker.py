@@ -15,6 +15,7 @@ class DiceChecker:
     self.camera.callibrate()
     self.camera.setup()
     self.robot.do_callibration()
+    self.results = [0,0,0,0,0,0]
     dice = None
     time.sleep(4)
     while dice == None:
@@ -32,12 +33,31 @@ class DiceChecker:
       print("Please supply the path of the serial port (for instance /dev/tty.usbserial-A6031W5L)")
       sys.exit(1)
     
+  def count_results(self, points):
+    if (points >6 or points < 1):
+      print("Misdetection: %d points" % points)
+      return
+    self.results[points-1] += 1
+    
+  def report_results(self):
+    total = sum(results)
+    expected = float(1) / 6
+    print("Dice totals: %s" % self.results)
+    for i in range(1,7):
+      ratio = float(self.results) / total
+      less = "less" if ratio < expected else "more"
+      difference = abs(ratio - expected) * 100
+      print("%d was thrown %d %s than expected" % (i+1, difference, less))
+  
   def run_analyzer(self):
     while True:
       self.camera.process();
+      self.count_results(self.camera.analyzer.points)
       key = cv2.waitKey(1)
       if key & 0xFF == ord('s'):
         self.camera.save_frame()
+      if key & 0xFF == ord('r'):
+        self.report_results()
       
   def run(self): 
     self.analyze_thread = threading.Thread(target=self.run_analyzer)
