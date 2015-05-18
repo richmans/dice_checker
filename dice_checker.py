@@ -40,33 +40,36 @@ class DiceChecker:
     self.results[points-1] += 1
     
   def report_results(self):
-    total = sum(results)
+    total = sum(self.results)
     expected = float(1) / 6
     print("Dice totals: %s" % self.results)
-    for i in range(1,7):
-      ratio = float(self.results) / total
+    for i in range(1,5):
+      ratio = float(self.results[i]) / total
       less = "less" if ratio < expected else "more"
       difference = abs(ratio - expected) * 100
       print("%d was thrown %d %s than expected" % (i+1, difference, less))
-  
-  def run_analyzer(self):
-    while True:
-      self.camera.process();
-      self.count_results(self.camera.analyzer.points)
-      key = cv2.waitKey(1)
-      if key & 0xFF == ord('s'):
-        self.camera.save_frame()
-      if key & 0xFF == ord('r'):
-        self.report_results()
-      
+ 
+  def handle_key(self, key):
+    if key & 0xFF == ord('x'):
+      sys.exit(0)
+    if key & 0xFF == ord('s'):
+      self.camera.save_frame()
+    if key & 0xFF == ord('r'):
+      self.report_results() 
+           
   def run(self): 
-    self.analyze_thread = threading.Thread(target=self.run_analyzer)
-    self.analyze_thread.setDaemon(True)
-    self.analyze_thread.start()
     while True:
+       print("Detection")
        dice = self.camera.detected_dice()
        if dice != None:
+         print("Pickup")
          self.robot.pickup(*dice); 
-       time.sleep(10)
+       print("Key wait")
+       key = cv2.waitKey(12000)
+       self.handle_key(key)
+       print("Camproc")
+       self.camera.process();
+       print("Resultcount")
+       self.count_results(self.camera.analyzer.points)
        
 DiceChecker(sys.argv).run()

@@ -6,7 +6,6 @@ class Analyzer:
     def __init__(self):
         self.color_threshold = 170
         self.blob_threshold = 11
-        
         self.area_threshold = 1000
         self.params = cv2.SimpleBlobDetector_Params()
         self.params.filterByArea = True
@@ -111,14 +110,14 @@ class Analyzer:
         self.detected_dice = map(lambda x: self.convert_coordinates((x.pt[0], x.pt[1])), self.keypoints)
         info = "treshold %d, area %d, %d blobs" % (self.color_threshold, self.area_threshold, len(self.keypoints))
         cv2.putText(im_with_keypoints, info, (0, 580), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0),1)
-        cv2.imshow( window_name ,cimg)
+        #cv2.imshow( window_name ,cimg)
         if len(self.detected_dice) > 0:
             x,y= self.detected_dice[0]
             self.points = self.analyze_points(original, self.keypoints[0].pt, None)
             if window_name != None:
                 dice_info = "Dice (%d, %d) %d" % (x, y, self.points)
                 cv2.putText(im_with_keypoints, dice_info, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0),1)
-                cv2.imshow( window_name ,im_with_keypoints)
+        cv2.imshow( window_name ,cimg)
 
     def analyze_points(self, im, coordinates, window_name):
         x=coordinates[0]

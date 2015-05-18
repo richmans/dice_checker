@@ -104,6 +104,13 @@ void handlePickupState(int command) {
   if(waitingForPickup == 1) {
     // take only the first 4 bits so that we can use ascii @ for value 0
     pickupAngle = command & 63;
+    if((command & 128) != 0) {
+      Serial.println(pickupAngle, DEC);
+      Serial.println("Converting to negative angle");
+      pickupAngle = -1 * pickupAngle;
+      
+    }
+    pickupAngle += angle_bias;
     waitingForPickup = 2; 
   }else if(waitingForPickup == 2) {
     pickupStretch = command;
@@ -125,29 +132,29 @@ void doGripperTest(){
 void doPickup(int angle, int stretch) {
   uarm.gripperRelease();
   Serial.println("Going to position");
-  uarm.setPosition(20, 92, 0, 0);
+  uarm.setPosition(20, 92, angle_bias, -20);
   delay(500);
-  uarm.setPosition(stretch, 92, 0, 0);
+  uarm.setPosition(stretch, 92, angle_bias, -20);
   delay(1000);
-  uarm.setPosition(stretch, 30, angle, 0);
+  uarm.setPosition(stretch, 40, angle, -20);
   delay(2000);
   Serial.println("Moving down");
-  uarm.setPosition(stretch, 7, angle, 0);
+  uarm.setPosition(stretch, 13, angle, -20);
   delay(500);
   Serial.println("Closing gripper");
   uarm.gripperCatch();
   delay(500);
   Serial.println("Backing out");
-  uarm.setPosition(stretch, 92, angle, 0);
+  uarm.setPosition(stretch, 92, angle, -20);
   delay(500);
   Serial.println("Moving to the slide for dropoff");
-  uarm.setPosition(100, 180, -45, 0);
+  uarm.setPosition(115, 178, -63, -20);
   delay(2000);
   Serial.println("And... release!");
   uarm.gripperRelease();
   delay(500);
   Serial.println("Moving back");
-  uarm.setPosition(80, 180, 0, 0);
+  uarm.setPosition(80, 180, angle_bias, -20);
   delay(2000);
   safeState();
 }
@@ -157,9 +164,9 @@ void doCallibration() {
   uarm.gripperCatch();
   delay(400);
   Serial.println("Going to middle of the field");
-  uarm.setPosition(80, 180, 0, -20);
+  uarm.setPosition(80, 180, angle_bias, -20);
   delay(1000);
-  uarm.setPosition(80, 10, 0, -20);
+  uarm.setPosition(80, 15, angle_bias, -20);
   delay(1800);
   Serial.println("Releasing dice");
   uarm.gripperRelease();

@@ -39,11 +39,15 @@ class Robot:
     stretch = int(calculate_distance((x,y), (self.zero_angle_x, self.stretch_distance)))
     #print("Stretch calc: distance((%d,%d),(%d,%d) = %d" % (x,y,self.zero_angle_x,  self.stretch_distance, stretch) )
     # sin(a) = distx / stretch
+    actual_stretch = stretch + 100
     distx = x - self.zero_angle_x
-    print("Distx %d" % distx)
-    angle = int(-math.degrees(math.asin(distx / stretch)))
-    print("Sending command 112, %d, %d" % (angle, stretch))
-    self.send_command([112, angle, stretch])
+    print("Distx %f, stretch %d" % (distx, actual_stretch))
+    angle = int(math.degrees(math.asin(float(distx) / actual_stretch)))
+    # set the first bit to 1 if angle is positive
+    angle_byte = abs(angle)
+    if angle > 0: angle_byte += 128 
+    print("Sending command 112, %d, %d" % (angle_byte, stretch))
+    self.send_command([112, angle_byte, stretch])
     
     
   def send_command(self, command):
