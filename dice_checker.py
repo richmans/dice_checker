@@ -22,7 +22,7 @@ class DiceChecker:
       print("Trying to detect dice")
       self.camera.process()
       dice = self.camera.detected_dice()
-      time.sleep(1)
+      cv2.waitKey(1000)
     self.robot.set_callibration(dice)
     
   def check_arguments(self, argv):

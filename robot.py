@@ -22,7 +22,7 @@ class Robot:
     time.sleep(2)
 
   def set_callibration(self, callibrated_dice):
-    self.stretch_distance = callibrated_dice[1] - 80
+    self.stretch_distance = callibrated_dice[1] - 180
     self.zero_angle_x = callibrated_dice[0]
     print("Callibration %d, %d" % (self.zero_angle_x, self.stretch_distance))
     
@@ -39,15 +39,15 @@ class Robot:
     stretch = int(calculate_distance((x,y), (self.zero_angle_x, self.stretch_distance)))
     #print("Stretch calc: distance((%d,%d),(%d,%d) = %d" % (x,y,self.zero_angle_x,  self.stretch_distance, stretch) )
     # sin(a) = distx / stretch
-    actual_stretch = stretch + 100
+    robot_stretch = stretch - 100
     distx = x - self.zero_angle_x
-    print("Distx %f, stretch %d" % (distx, actual_stretch))
-    angle = int(math.degrees(math.asin(float(distx) / actual_stretch)))
+    print("Distx %f, stretch %d" % (distx, robot_stretch))
+    angle = int(round(math.degrees(math.asin(float(distx) / stretch))))
     # set the first bit to 1 if angle is positive
     angle_byte = abs(angle)
     if angle > 0: angle_byte += 128 
-    print("Sending command 112, %d, %d" % (angle_byte, stretch))
-    self.send_command([112, angle_byte, stretch])
+    print("Sending command 112, %d, %d" % (angle_byte, robot_stretch))
+    self.send_command([112, angle_byte, robot_stretch])
     
     
   def send_command(self, command):
