@@ -47,7 +47,7 @@ class DiceChecker:
       ratio = float(self.results[i]) / total
       less = "less" if ratio < expected else "more"
       difference = abs(ratio - expected) * 100
-      print("%d was thrown %d %s than expected" % (i+1, difference, less))
+      print("%d was thrown %d%% %s than expected" % (i+1, difference, less))
  
   def handle_key(self, key):
     if key & 0xFF == ord('x'):
