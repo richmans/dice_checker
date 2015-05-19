@@ -62,6 +62,10 @@ class Analyzer:
         vla = calculate_distance(vpc, vpb)
         vlb = calculate_distance(vpa, vpc)
         vlc = calculate_distance(vpb, vpa)
+        # The easy case: the dice is on one of the reference points
+        if vla < 5: return rpb
+        if vlb < 5: return rpa
+        
         #print("Virtual distances: vla %f, vlb %f, vlc %f " % (vla, vlb, vlc))
         # step 2, calculate the angles of each point
         vaa = self.calculate_angle_from_lengths(vla, vlb, vlc)

@@ -33,7 +33,9 @@ class Robot:
   def interactive(self):
     self.send_command([i])
   
-   
+  def release(self):
+    self.send_command([111])
+    
   def pickup(self, x, y):
     # calculate the distance to the center of the arm, that is the stretch
     stretch = int(calculate_distance((x,y), (self.zero_angle_x, self.stretch_distance)))

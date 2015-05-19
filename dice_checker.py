@@ -15,14 +15,16 @@ class DiceChecker:
     self.camera.callibrate()
     self.camera.setup()
     self.robot.do_callibration()
+    self.success_pickups = 0
+    self.fail_pickups = 0
     self.results = [0,0,0,0,0,0]
     dice = None
-    time.sleep(4)
+    self.sleep(4000)
     while dice == None:
       print("Trying to detect dice")
       self.camera.process()
       dice = self.camera.detected_dice()
-      cv2.waitKey(1000)
+      self.sleep(2000)
     self.robot.set_callibration(dice)
     
   def check_arguments(self, argv):
@@ -43,11 +45,16 @@ class DiceChecker:
     total = sum(self.results)
     expected = float(1) / 6
     print("Dice totals: %s" % self.results)
-    for i in range(1,5):
-      ratio = float(self.results[i]) / total
-      less = "less" if ratio < expected else "more"
-      difference = abs(ratio - expected) * 100
-      print("%d was thrown %d%% %s than expected" % (i+1, difference, less))
+    if total > 0:
+      for i in range(1,6):
+        ratio = float(self.results[i]) / total
+        less = "less" if ratio < expected else "more"
+        difference = abs(ratio - expected) * 100
+        print("%d was thrown %d%% %s than expected" % (i+1, difference, less))
+    pickup_ratio = 0
+    total_pickups = self.success_pickups + self.fail_pickups
+    if (self.success_pickups > 0): pickup_ratio = (float(self.success_pickups) / total_pickups) * 100
+    print("Total %d pickups, %d good ones (%d%%)" % (total_pickups, self.success_pickups, pickup_ratio))
  
   def handle_key(self, key):
     if key & 0xFF == ord('x'):
@@ -56,17 +63,38 @@ class DiceChecker:
       self.camera.save_frame()
     if key & 0xFF == ord('r'):
       self.report_results() 
-           
+      
+  def sleep(self, duration):
+    key = cv2.waitKey(duration) 
+    if key != -1:
+      self.handle_key(key)    
+      cv2.waitKey(duration)
+    
   def run(self): 
     while True:
        print("Detection")
        dice = self.camera.detected_dice()
+       if dice == None:
+         print("Error: no dice detected")
+         self.sleep(2000)
+         self.camera.process();
+         continue
+       print("Pickup")
+       self.robot.pickup(*dice);
+       key = self.sleep(10000)
+       self.camera.process();
+       dice = self.camera.detected_dice()
        if dice != None:
-         print("Pickup")
-         self.robot.pickup(*dice); 
-       print("Key wait")
-       key = cv2.waitKey(12000)
-       self.handle_key(key)
+         print("Error: wrong pickup, trying again")
+         self.robot.release()
+         self.fail_pickups += 1
+         self.sleep(3000)
+         continue
+        
+       print("Pickup ok. Releasing")
+       self.success_pickups += 1
+       self.robot.release()
+       self.sleep(3000)
        print("Camproc")
        self.camera.process();
        print("Resultcount")

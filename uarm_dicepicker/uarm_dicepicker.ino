@@ -30,8 +30,8 @@ void setup()
   Serial.println("Hello! Please enter one of the following:");
   Serial.println("c for callibration");
   Serial.println("p for pickup");
+  Serial.println("o for release");
   Serial.println("r for report");
-  Serial.println("g for gripper test");
   Serial.println("i for interactive mode");
   setSpeeds();
   safeState();
@@ -67,8 +67,8 @@ void loop()
     }else{
       if (command == 99) doCallibration();
       if (command == 112) waitingForPickup = 1; 
+      if (command == 111) doRelease();
       if (command == 114) printState();
-      if (command == 103) doGripperTest();
       if (command == 105) {
         safeState();
         interactiveMode = true;
@@ -119,15 +119,6 @@ void handlePickupState(int command) {
   }
 }
 
-void doGripperTest(){
-  Serial.println("I give you, the gripper test!");
-  uarm.gripperCatch();
-    printState();
-  Serial.println("Voila! Closed!"); 
-  delay(2000);
-  uarm.gripperRelease();  
-  Serial.println("Thankyoubyebye!");
-}
 
 void doPickup(int angle, int stretch) {
   uarm.gripperRelease();
@@ -150,7 +141,10 @@ void doPickup(int angle, int stretch) {
   Serial.println("Moving to the slide for dropoff");
   uarm.setPosition(115, 178, -63, -20);
   delay(2000);
-  Serial.println("And... release!");
+}
+
+void doRelease() {
+   Serial.println("And... release!");
   uarm.gripperRelease();
   delay(500);
   Serial.println("Moving back");
@@ -184,6 +178,9 @@ void printPosition() {
   Serial.print(angle);
   Serial.print(",");  
   Serial.print(hand_angle);
+  Serial.print(",");  
+  int hand = uarm.readAngle(SERVO_HAND);
+  Serial.print(hand);
   Serial.print("\n");
 }
 

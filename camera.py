@@ -16,7 +16,7 @@ class CameraProcessor:
       "Got it!"
     ]
     self.create_images_dir()
-  
+    
   def create_images_dir(self):
     try:
       os.mkdir("images")
