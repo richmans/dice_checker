@@ -54,9 +54,11 @@ class Analyzer:
         vpb = self.callibration_points[1]
         rpa = self.callibration_reference[0]
         rpb = self.callibration_reference[1]
-        
+      
         # check if the point is above or below the callibration line.. usefull later
-        above_line = (vpa[0] - vpb[0]) / (vpa[1] - vpb[1]) * vpc[0] > vpc[1]
+        # Note: This asumes that the camera is at least a little straight!
+        above_line = (float(vpa[1] - vpb[1]) / (vpa[0] - vpb[0]) * (vpc[0] - vpb[0]) + vpb[1]) > vpc[1]
+        
         # step 1, calculate the virtual distance between all points
         # vla is the line that does not connect to vpa, etc
         vla = calculate_distance(vpc, vpb)
@@ -119,12 +121,14 @@ class Analyzer:
         if len(self.detected_dice) > 0:
             x,y= self.detected_dice[0]
             self.points = self.analyze_points(original, self.keypoints[0].pt, None)
-            if window_name != None:
+            if window_name != None and x != None and y != None and self.points != None:
                 dice_info = "Dice (%d, %d) %d" % (x, y, self.points)
                 cv2.putText(im_with_keypoints, dice_info, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0),1)
         cv2.imshow( window_name ,im_with_keypoints)
 
     def analyze_points(self, im, coordinates, window_name):
+        self.points = 0
+        if im == None: return
         x=coordinates[0]
         y=coordinates[1]
         dice_size = 60
@@ -137,7 +141,8 @@ class Analyzer:
         #dice = cv2.split(dice)[0]
         #dice = 255 - dice
         #dice = cv2.equalizeHist(dice)
-        #dice = cv2.Canny(dice,80,40)
+        #dice = cv2.Canny(dice,80,40
+        if dice == None: return
         circles = cv2.HoughCircles(dice,cv2.HOUGH_GRADIENT,1,10,
                                     param1=130,param2=15,minRadius=5 ,maxRadius=20)
         result = 0 if circles == None else len(circles[0])

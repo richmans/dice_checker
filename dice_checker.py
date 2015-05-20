@@ -94,7 +94,7 @@ class DiceChecker:
        print("Pickup ok. Releasing")
        self.success_pickups += 1
        self.robot.release()
-       self.sleep(3000)
+       self.sleep(4000)
        print("Camproc")
        self.camera.process();
        print("Resultcount")
