@@ -12,10 +12,12 @@
 #include <UF_uArm.h>
 int pickupAngle;
 int pickupStretch;
+int pickupHandAngle;
 int waitingForPickup;
 bool interactiveMode;
 
 int angle_bias = -4;
+int handBias = -20;
 int angle;
 int stretch;
 int height;
@@ -43,12 +45,12 @@ void safeState(){
   angle = 0;
   stretch = 20;
   height = 93;
-  hand_angle = -20;
+  hand_angle = 0;
   setPosition();
 }
 
 void setPosition() {
-  uarm.setPosition(stretch, height, angle + angle_bias, hand_angle);
+  uarm.setPosition(stretch, height, angle + angle_bias, hand_angle + handBias);
   if (gripperClosed == true && interactiveMode) {
     uarm.gripperCatch();
   }else {
@@ -85,6 +87,9 @@ void handleInteractive(int command) {
   if (command == 113) height += 5;
   if (command == 119) stretch += 5;
   if (command == 115) stretch -= 5;
+  if (command == 122) hand_angle -=5;
+  if (command == 120) hand_angle +=5;
+  
   if (command == 103) {
     if (gripperClosed == true) {
       gripperClosed = false;
@@ -115,31 +120,41 @@ void handlePickupState(int command) {
   }else if(waitingForPickup == 2) {
     pickupStretch = command;
     doPickup(pickupAngle, pickupStretch);
-    waitingForPickup = 0;
+    waitingForPickup = 3;
+  }else if(waitingForPickup == 3) {
+    // take only the first 4 bits so that we can use ascii @ for value 0
+    pickupHandAngle = command & 63;
+    if((command & 128) != 0) {
+      Serial.println(pickupHandAngle, DEC);
+      Serial.println("Converting hand to negative angle");
+      pickupHandAngle = -1 * pickupHandAngle;
+      
+    }
+    pickupHandAngle += handBias;
+    waitingForPickup = 0; 
   }
 }
-
 
 void doPickup(int angle, int stretch) {
   uarm.gripperRelease();
   Serial.println("Going to position");
-  uarm.setPosition(20, 92, angle_bias, -20);
+  uarm.setPosition(20, 92, angle_bias, handBias);
   delay(500);
-  uarm.setPosition(stretch, 92, angle_bias, -20);
+  uarm.setPosition(stretch, 92, angle_bias, handBias);
   delay(1000);
-  uarm.setPosition(stretch, 40, angle, -20);
+  uarm.setPosition(stretch, 40, angle, pickupHandAngle);
   delay(2000);
   Serial.println("Moving down");
-  uarm.setPosition(stretch, 13, angle, -20);
+  uarm.setPosition(stretch, 13, angle, pickupHandAngle);
   delay(500);
   Serial.println("Closing gripper");
   uarm.gripperCatch();
   delay(500);
   Serial.println("Backing out");
-  uarm.setPosition(stretch, 92, angle, -20);
+  uarm.setPosition(stretch, 92, angle, handBias);
   delay(500);
   Serial.println("Moving to the slide for dropoff");
-  uarm.setPosition(115, 178, -63, -20);
+  uarm.setPosition(115, 178, -63, handBias);
   delay(2000);
 }
 
@@ -148,7 +163,7 @@ void doRelease() {
   uarm.gripperRelease();
   delay(500);
   Serial.println("Moving back");
-  uarm.setPosition(80, 180, angle_bias, -20);
+  uarm.setPosition(80, 180, angle_bias, handBias);
   delay(2000);
   safeState();
 }
@@ -158,9 +173,9 @@ void doCallibration() {
   uarm.gripperCatch();
   delay(400);
   Serial.println("Going to middle of the field");
-  uarm.setPosition(80, 180, angle_bias, -20);
+  uarm.setPosition(80, 180, angle_bias, handBias);
   delay(1000);
-  uarm.setPosition(80, 15, angle_bias, -20);
+  uarm.setPosition(80, 15, angle_bias, handBias);
   delay(1800);
   Serial.println("Releasing dice");
   uarm.gripperRelease();

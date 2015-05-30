@@ -3,10 +3,10 @@ import cv2
 import math 
 from utils import calculate_distance
 class Analyzer: 
-    def __init__(self):
-        self.color_threshold = 170
-        self.blob_threshold = 11
-        self.area_threshold = 1000
+    def __init__(self, gui):
+        self.color_threshold = gui.color_threshold
+        self.blob_threshold = gui.blob_threshold
+        self.area_threshold = gui.area_threshold
         self.params = cv2.SimpleBlobDetector_Params()
         self.params.filterByArea = True
         self.params.minArea = self.area_threshold
@@ -25,6 +25,8 @@ class Analyzer:
         ]
         self.check_parameter = 0
         self.points = 0
+        self.gui = gui
+        
     def set_area_threshold(self, threshold):
         self.area_threshold = threshold
         self.params.minArea = self.area_threshold
@@ -100,7 +102,7 @@ class Analyzer:
         #print("Distances rlx %f rly %f" % (rlx, rly))
         return (rpb[0] + rlx, rpb[1] + rly)
     
-    def analyze(self, im, original, window_name):
+    def analyze(self, im, original):
         oim = im
         kernel = np.ones((5,5), np.uint8)
         im = cv2.GaussianBlur(im, (7,7), 0)
@@ -110,50 +112,89 @@ class Analyzer:
         im = cv2.GaussianBlur(im, (5,5), 0)
         cimg = cv2.split(im)[2]
         self.keypoints = self.detector.detect(cimg)
-        im_with_keypoints = cv2.drawKeypoints(oim, self.keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        im_with_keypoints = 255 - cimg
+        im_with_keypoints = cv2.drawKeypoints(im_with_keypoints, self.keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         #print("Found %d blobs" % len(keypoints)) 
         #print("Area %f" % keypoints[0].size)
         self.detected_dice = map(lambda x: self.convert_coordinates((x.pt[0], x.pt[1])), self.keypoints)
         
         info = "treshold %d, area %d, %d blobs" % (self.color_threshold, self.area_threshold, len(self.keypoints))
         cv2.putText(im_with_keypoints, info, (0, 580), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0),1)
-        #cv2.imshow( window_name ,cimg)
         if len(self.detected_dice) > 0:
             x,y= self.detected_dice[0]
-            self.points = self.analyze_points(original, self.keypoints[0].pt, None)
-            if window_name != None and x != None and y != None and self.points != None:
+            self.points = self.analyze_points(original, self.keypoints[0].pt)
+            self.angle = self.analyze_angle(original, self.keypoints[0].pt)
+            if  x != None and y != None and self.points != None:
                 dice_info = "Dice (%d, %d) %d" % (x, y, self.points)
                 cv2.putText(im_with_keypoints, dice_info, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0),1)
-        cv2.imshow( window_name ,im_with_keypoints)
+        self.gui.set_frame("Blob", im_with_keypoints)
+    # detects the orientation of the dice, so that the arm knows how far to rotate
+    # the gripper for optimal pickup. Returns a number between 0 and 90, 0 if unable
+    # to detect the dice
+    # This function does not take into account that optimal gripper rotation may differ
+    # from dice orientation when the location is close to the edge of the arena
+    def analyze_angle(self, im, coordinates):
+        if im == None: return
+        x=coordinates[0]
+        y=coordinates[1]
+        dice_size = 100
+        dice = np.copy(im[y*2-dice_size:y*2+dice_size, x*2-dice_size:x*2+dice_size])  
+        original_dice = dice
+        
+        kernel = np.ones((5,5), np.uint8)
+        
+        # use thresholds to get shap edges, and convert to grayscale
+        dice = cv2.GaussianBlur(dice, (7,7), 0)
+        what, dice = cv2.threshold(dice, self.color_threshold, 256, 1)
+        dice = cv2.GaussianBlur(dice, (5,5), 0)
+        if dice == None: return
+        dice = cv2.split(dice)[2]
+        
+        dice = cv2.Canny(dice,50,150,apertureSize = 3)
+        
+        lines = cv2.HoughLines(dice,1,np.pi/180,30) 
+        if lines == None: return 0
+        theta = lines[0][0][1]
+        rho = lines[0][0][0]
+        formatted_angle = int(math.degrees(theta))  % 90
 
-    def analyze_points(self, im, coordinates, window_name):
+        print("Detected angle: %d" % formatted_angle)
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a*rho
+        y0 = b*rho
+        x1 = int(x0 + 1000*(-b))
+        y1 = int(y0 + 1000*(a))
+        x2 = int(x0 - 1000*(-b))
+        y2 = int(y0 - 1000*(a))
+        
+
+        cv2.line(original_dice,(x1,y1),(x2,y2),(0,0,255),2)
+        self.gui.set_frame("Angle", original_dice)  
+        return formatted_angle 
+        
+    def analyze_points(self, im, coordinates):
         self.points = 0
         if im == None: return
         x=coordinates[0]
         y=coordinates[1]
         dice_size = 60
-        dice = im[y*2-dice_size:y*2+dice_size, x*2-dice_size:x*2+dice_size]  
+        dice = np.copy(im[y*2-dice_size:y*2+dice_size, x*2-dice_size:x*2+dice_size])  
         original_dice = dice
-        #dice = cv2.GaussianBlur(dice, (11,11), 0)   
         dice = cv2.cvtColor(dice, cv2.COLOR_BGR2GRAY);
         dice = cv2.GaussianBlur(dice, (11,11), 0)   
-        #ret,dice = cv2.threshold(dice,127,255,cv2.THRESH_TOZERO)
-        #dice = cv2.split(dice)[0]
-        #dice = 255 - dice
-        #dice = cv2.equalizeHist(dice)
-        #dice = cv2.Canny(dice,80,40
         if dice == None: return
         circles = cv2.HoughCircles(dice,cv2.HOUGH_GRADIENT,1,10,
                                     param1=130,param2=15,minRadius=5 ,maxRadius=20)
+        
         result = 0 if circles == None else len(circles[0])
-        #print(circles)
         if result > 0:
             circles = np.uint16(np.around(circles))
             for i in circles[0,:]:
                 # draw the outer circle
-                cv2.circle(dice,(i[0],i[1]),i[2],(0,255,0),2)
+                cv2.circle(original_dice,(i[0],i[1]),i[2],(0,255,0),2)
             
-        cv2.imshow("test", dice)
+        self.gui.set_frame("Points", original_dice)
         return result
         
     def report(self):

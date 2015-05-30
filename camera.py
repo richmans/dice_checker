@@ -6,8 +6,8 @@ import time
 import uuid
 import os
 class CameraProcessor:
-  def __init__(self, camera):
-    self.analyzer = Analyzer()
+  def __init__(self, camera, gui):
+    self.analyzer = Analyzer(gui)
     self.cap = cv2.VideoCapture(camera)
     self.callibration_state = 0
     self.callibration_message = [
@@ -16,6 +16,10 @@ class CameraProcessor:
       "Got it!"
     ]
     self.create_images_dir()
+    self.gui = gui
+    gui.subscribe('color_threshold', self)
+    gui.subscribe('blob_threshold', self)
+    gui.subscribe('area_threshold', self)
     
   def create_images_dir(self):
     try:
@@ -57,31 +61,24 @@ class CameraProcessor:
     
   def process_image(self, frame):
     resized = cv2.resize(frame, (800,600))
-    self.analyzer.analyze(resized, frame, 'frame')
+    self.analyzer.analyze(resized, frame)
   
-  def on_trackbar(self,value):
-    self.analyzer.color_threshold = value
   
-  def on_blob_trackbar(self,value):
-    self.analyzer.blob_threshold = value
-  
-  def on_area_trackbar(self,value):
-    self.analyzer.set_area_threshold(value * 100)
+  def set_parameter(self, name, value):
+    if name == 'color_threshold':
+      self.analyzer.color_threshold = value
+    elif name == 'blob_threshold':
+      self.analyzer.blob_threshold = value
+    elif name == 'area_threshold':
+      self.analyzer.set_area_threshold(value * 100)
     
   def report_blobs(self):
     self.analyzer.report()
   
-  def setup(self):
-    self.window = cv2.namedWindow('frame')
-    cv2.createTrackbar('Threshold','frame',self.analyzer.color_threshold,255,self.on_trackbar)
-    cv2.createTrackbar('Area','frame',self.analyzer.area_threshold / 100,100,self.on_area_trackbar)
-    cv2.createTrackbar('Blobs','frame',self.analyzer.blob_threshold,255,self.on_blob_trackbar)
   def teardown(self):
     self.cap.release()
-    cv2.destroyAllWindows()
     
   def run_test(self):
-    self.setup();
     while True:
       self.process()
       key = cv2.waitKey(1)

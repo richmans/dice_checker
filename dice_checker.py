@@ -3,6 +3,7 @@ import time
 import serial
 import cv2
 import threading
+from gui import DiceGui
 from getch import getch, pause
 from robot import Robot
 from camera import CameraProcessor
@@ -11,13 +12,14 @@ class DiceChecker:
   def __init__(self, argv):
     self.check_arguments(argv)
     self.robot = Robot(argv[2])
-    self.camera = CameraProcessor(int(argv[1]))
+    self.gui = DiceGui()
+    self.camera = CameraProcessor(int(argv[1]), self.gui)
     self.camera.callibrate()
-    self.camera.setup()
     self.robot.do_callibration()
     self.success_pickups = 0
     self.fail_pickups = 0
     self.results = [0,0,0,0,0,0]
+    self.interactive = True
     dice = None
     self.sleep(4000)
     while dice == None:
@@ -46,7 +48,7 @@ class DiceChecker:
     expected = float(1) / 6
     print("Dice totals: %s" % self.results)
     if total > 0:
-      for i in range(1,6):
+      for i in range(0,6):
         ratio = float(self.results[i]) / total
         less = "less" if ratio < expected else "more"
         difference = abs(ratio - expected) * 100
@@ -57,18 +59,25 @@ class DiceChecker:
     print("Total %d pickups, %d good ones (%d%%)" % (total_pickups, self.success_pickups, pickup_ratio))
  
   def handle_key(self, key):
-    if key & 0xFF == ord('x'):
+    if key & 0xFF == ord('q'):
       sys.exit(0)
     if key & 0xFF == ord('s'):
       self.camera.save_frame()
     if key & 0xFF == ord('r'):
       self.report_results() 
+    if key & 0xFF == ord('i'):
+      self.interactive =  False if self.interactive else True
       
   def sleep(self, duration):
     key = cv2.waitKey(duration) 
     if key != -1:
       self.handle_key(key)    
       cv2.waitKey(duration)
+  
+  def wait(self):
+    key = -1
+    while key == -1:
+      key = cv2.waitKey()
     
   def run(self): 
     while True:
@@ -79,9 +88,11 @@ class DiceChecker:
          self.sleep(2000)
          self.camera.process();
          continue
-       print("Pickup")
-       self.robot.pickup(*dice);
-       key = self.sleep(10000)
+       print("Ready for pickup")
+       angle = self.camera.analyzer.angle
+       if self.interactive: self.wait() 
+       self.robot.pickup(dice[0], dice[1], angle);
+       key = self.sleep(8000)
        self.camera.process();
        dice = self.camera.detected_dice()
        if dice != None:
@@ -95,9 +106,7 @@ class DiceChecker:
        self.success_pickups += 1
        self.robot.release()
        self.sleep(4000)
-       print("Camproc")
        self.camera.process();
-       print("Resultcount")
        self.count_results(self.camera.analyzer.points)
        
 DiceChecker(sys.argv).run()

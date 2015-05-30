@@ -1,6 +1,7 @@
 import os
 import sys
 import cv2
+from gui import DiceGui
 from camera import CameraProcessor
 def next_image(images):
   if len(images) == 0: 
@@ -53,9 +54,9 @@ answers = {
   
 }
 
-camera = CameraProcessor(0)
+gui = DiceGui()
+camera = CameraProcessor(0, gui)
 analyzer = camera.analyzer
-camera.setup()
 
 def check_parameter(min_value, max_value, step):
   best_result  = 0.0
@@ -81,11 +82,11 @@ def run_set(images):
     print("Guessed %d, answer %d" % (guess, answers[file]))
     if (guess == answers[file]): 
       score += 1
-      cv2.waitKey(0)
+      key = cv2.waitKey(0)
     else:
-      cv2.waitKey(0)
-      pass
-  
+      key = cv2.waitKey(0)
+    if key == ord('q'): 
+      break
   result = float(score) / len(answers)
   print("Score: %f" % result)
   return result
